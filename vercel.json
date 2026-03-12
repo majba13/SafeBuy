@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "installCommand": "npm install",
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "Frontend/.next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.safebuy.com/api/:path*"
+    }
+  ]
+}

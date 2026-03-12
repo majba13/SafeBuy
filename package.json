@@ -1,0 +1,11 @@
+{
+  "name": "safebuy-root",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix Frontend run build",
+    "vercel-build": "npm --prefix Frontend install && npm --prefix Frontend run build"
+  },
+  "dependencies": {
+    "next": "16.1.6"
+  }
+}
