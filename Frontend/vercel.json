@@ -1,0 +1,48 @@
+{
+  "name": "safebuy",
+  "version": 2,
+  "buildCommand": "npm install && npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
+  "env": {
+    "NEXT_PUBLIC_API_URL": {
+      "description": "Backend API URL (e.g. https://api.safebuy.com or backend deployment URL)"
+    },
+    "NEXT_PUBLIC_SOCKET_URL": {
+      "description": "Backend Socket.IO URL (e.g. wss://api.safebuy.com)"
+    },
+    "NEXT_PUBLIC_GOOGLE_CLIENT_ID": {
+      "description": "Google OAuth client ID for authentication"
+    },
+    "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME": {
+      "description": "Cloudinary cloud name for image optimization"
+    }
+  },
+  "regions": ["iad1"],
+  "builds": [
+    {
+      "src": "next.config.ts",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "destination": "/api/$1",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    },
+    {
+      "src": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "public": false,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://api.safebuy.com/api/$1"
+    }
+  ]
+}
