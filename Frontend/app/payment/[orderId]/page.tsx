@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -63,7 +63,7 @@ const PAYMENT_INFO: Record<string, { name: string; number: string; icon: string;
   },
 };
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -206,5 +206,13 @@ export default function PaymentPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <PaymentPageContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
@@ -11,7 +11,7 @@ import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
 import type { ChatRoom, ChatMessage } from '@/lib/types';
 import type { Socket } from 'socket.io-client';
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, accessToken } = useAppSelector((s) => s.auth);
@@ -234,5 +234,13 @@ export default function ChatPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<><Header /><main className="max-w-6xl mx-auto px-4 py-6"><div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex h-[calc(100vh-160px)] items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div></main></>}>
+      <ChatPageContent />
+    </Suspense>
   );
 }

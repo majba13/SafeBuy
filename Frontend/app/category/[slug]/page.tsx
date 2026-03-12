@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -41,7 +41,7 @@ const PRICE_RANGES = [
   { label: 'Over ৳5,000', min: 5000, max: undefined },
 ];
 
-export default function CategoryPage() {
+function CategoryPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -211,5 +211,13 @@ export default function CategoryPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={<><Header /><main className="max-w-7xl mx-auto px-4 py-8"><div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">{Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}</div></main><Footer /></>}>
+      <CategoryPageContent />
+    </Suspense>
   );
 }

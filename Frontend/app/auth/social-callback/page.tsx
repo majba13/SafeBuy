@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
@@ -6,7 +7,7 @@ import { useAppDispatch } from '@/store/hooks';
 import { setCredentials } from '@/store/authSlice';
 import toast from 'react-hot-toast';
 
-export default function SocialCallbackPage() {
+function SocialCallbackPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -48,5 +49,13 @@ export default function SocialCallbackPage() {
         <p className="text-gray-600">Completing sign in…</p>
       </div>
     </div>
+  );
+}
+
+export default function SocialCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <SocialCallbackPageContent />
+    </Suspense>
   );
 }
