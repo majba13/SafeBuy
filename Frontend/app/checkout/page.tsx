@@ -1,15 +1,16 @@
 'use client';
-import { useState } from 'react';
+
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import CheckoutStepper from '@/components/cart/CheckoutStepper';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { clearCart, selectCartTotal } from '@/store/cartSlice';
 import { apiFetch } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-type ShippingForm = {
+type ShippingAddress = {
   fullName: string;
   phone: string;
   address: string;
@@ -17,12 +18,17 @@ type ShippingForm = {
   district: string;
 };
 
+const DELIVERY_METHODS = [
+  { id: 'standard', name: 'Standard Delivery', eta: '2-4 days', fee: 60 },
+  { id: 'express', name: 'Express Delivery', eta: '24 hours', fee: 120 },
+];
+
 const PAYMENT_METHODS = [
-  { id: 'bkash', label: 'bKash', icon: '📱', desc: 'bKash Mobile Banking' },
-  { id: 'nagad', label: 'Nagad', icon: '💳', desc: 'Nagad Mobile Banking' },
-  { id: 'rocket', label: 'Rocket', icon: '🚀', desc: 'DBBL Rocket' },
-  { id: 'bank_transfer', label: 'Bank Transfer', icon: '🏦', desc: 'Islami Bank Bangladesh' },
-  { id: 'cod', label: 'Cash on Delivery', icon: '💵', desc: 'Pay when you receive' },
+  { id: 'bkash', title: 'bKash', description: 'Mobile payment transfer' },
+  { id: 'nagad', title: 'Nagad', description: 'Instant wallet payment' },
+  { id: 'rocket', title: 'Rocket', description: 'DBBL digital transfer' },
+  { id: 'bank_transfer', title: 'Bank Transfer', description: 'Direct account transfer' },
+  { id: 'cod', title: 'Cash on Delivery', description: 'Pay when delivered' },
 ];
 
 export default function CheckoutPage() {
@@ -30,19 +36,40 @@ export default function CheckoutPage() {
   const dispatch = useAppDispatch();
   const { items, couponCode, couponDiscount } = useAppSelector((s) => s.cart);
   const { user, accessToken } = useAppSelector((s) => s.auth);
+
+  const [step, setStep] = useState(1);
+  const [placing, setPlacing] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    fullName: user?.name || '',
+    phone: '',
+    address: '',
+    city: 'Dhaka',
+    district: 'Dhaka',
+  });
+  const [deliveryMethod, setDeliveryMethod] = useState('standard');
   const [paymentMethod, setPaymentMethod] = useState('bkash');
-  const [loading, setLoading] = useState(false);
+
   const subtotal = selectCartTotal(items);
-  const shipping = 60;
-  const total = subtotal - couponDiscount + shipping;
+  const shippingCost = DELIVERY_METHODS.find((m) => m.id === deliveryMethod)?.fee || 60;
+  const total = useMemo(() => subtotal + shippingCost - couponDiscount, [subtotal, shippingCost, couponDiscount]);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<ShippingForm>();
+  if (!user) {
+    router.push('/auth/login?redirect=/checkout');
+    return null;
+  }
 
-  const onSubmit = async (shippingData: ShippingForm) => {
-    if (!user || !accessToken) { router.push('/auth/login'); return; }
-    if (items.length === 0) { toast.error('Your cart is empty'); return; }
+  if (!items.length) {
+    router.push('/cart');
+    return null;
+  }
 
-    setLoading(true);
+  const placeOrder = async () => {
+    if (!accessToken) {
+      router.push('/auth/login?redirect=/checkout');
+      return;
+    }
+
+    setPlacing(true);
     try {
       const payload = {
         items: items.map((item) => ({
@@ -51,131 +78,154 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           price: item.price,
         })),
-        shippingAddress: shippingData,
+        shippingAddress,
         paymentMethod,
         couponCode,
-        shippingCost: shipping,
+        shippingCost,
       };
 
-      const order = await apiFetch<{ _id: string; orderNumber: string }>('/orders', {
+      const order = await apiFetch<{ _id: string }>('/orders', {
         method: 'POST',
-        body: JSON.stringify(payload),
         token: accessToken,
+        body: payload,
       });
 
       dispatch(clearCart());
+      toast.success('Order placed successfully');
+
       if (paymentMethod === 'cod') {
-        toast.success('Order placed! COD order confirmed.');
         router.push(`/orders/${order._id}`);
       } else {
         router.push(`/payment/${order._id}?method=${paymentMethod}&amount=${total}`);
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to place order');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to place order');
     } finally {
-      setLoading(false);
+      setPlacing(false);
     }
   };
-
-  if (!user) {
-    router.push('/auth/login');
-    return null;
-  }
 
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Checkout</h1>
+      <main className="market-container py-8">
+        <h1 className="text-3xl font-bold text-text-primary">Checkout</h1>
+        <p className="mt-1 text-sm text-text-secondary">Complete your secure purchase in four steps.</p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="grid md:grid-cols-2 gap-8">
-          <div>
-            {/* Shipping */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-              <h2 className="font-bold text-gray-900 mb-4">Shipping Address</h2>
-              <div className="space-y-4">
-                {[
-                  { name: 'fullName' as const, label: 'Full Name', placeholder: 'Mohammad Rahman' },
-                  { name: 'phone' as const, label: 'Phone', placeholder: '01XXXXXXXXX' },
-                  { name: 'address' as const, label: 'Address', placeholder: '123 Road, Area' },
-                  { name: 'city' as const, label: 'City', placeholder: 'Dhaka' },
-                  { name: 'district' as const, label: 'District', placeholder: 'Dhaka' },
-                ].map(({ name, label, placeholder }) => (
-                  <div key={name}>
-                    <label className="text-sm text-gray-600 block mb-1">{label}</label>
-                    <input
-                      {...register(name, { required: `${label} is required` })}
-                      placeholder={placeholder}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400"
-                    />
-                    {errors[name] && <p className="text-red-500 text-xs mt-1">{errors[name]?.message}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div className="mt-5">
+          <CheckoutStepper step={step} />
+        </div>
 
-            {/* Payment method */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-bold text-gray-900 mb-4">Payment Method</h2>
-              <div className="space-y-2">
-                {PAYMENT_METHODS.map((m) => (
-                  <label
-                    key={m.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                      paymentMethod === m.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value={m.id}
-                      checked={paymentMethod === m.id}
-                      onChange={() => setPaymentMethod(m.id)}
-                      className="accent-orange-500"
-                    />
-                    <span className="text-xl">{m.icon}</span>
-                    <div>
-                      <p className="text-sm font-medium">{m.label}</p>
-                      <p className="text-xs text-gray-500">{m.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Summary */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 h-fit">
-            <h2 className="font-bold text-gray-900 mb-4">Order Summary</h2>
-            <div className="space-y-2 text-sm mb-4">
-              {items.map((item) => (
-                <div key={item.productId} className="flex justify-between">
-                  <span className="text-gray-600 truncate max-w-40">{item.title} ×{item.quantity}</span>
-                  <span>৳{(item.price * item.quantity).toLocaleString()}</span>
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <section className="space-y-4 lg:col-span-2">
+            {step === 1 ? (
+              <div className="surface-card p-5">
+                <h2 className="text-xl font-bold text-text-primary">Shipping Address</h2>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <input value={shippingAddress.fullName} onChange={(e) => setShippingAddress((s) => ({ ...s, fullName: e.target.value }))} placeholder="Full name" className="h-11 rounded-xl border border-border px-3 text-sm" />
+                  <input value={shippingAddress.phone} onChange={(e) => setShippingAddress((s) => ({ ...s, phone: e.target.value }))} placeholder="Phone" className="h-11 rounded-xl border border-border px-3 text-sm" />
+                  <input value={shippingAddress.city} onChange={(e) => setShippingAddress((s) => ({ ...s, city: e.target.value }))} placeholder="City" className="h-11 rounded-xl border border-border px-3 text-sm" />
+                  <input value={shippingAddress.district} onChange={(e) => setShippingAddress((s) => ({ ...s, district: e.target.value }))} placeholder="District" className="h-11 rounded-xl border border-border px-3 text-sm" />
+                  <input value={shippingAddress.address} onChange={(e) => setShippingAddress((s) => ({ ...s, address: e.target.value }))} placeholder="Address" className="h-11 rounded-xl border border-border px-3 text-sm sm:col-span-2" />
                 </div>
-              ))}
-            </div>
-            <div className="border-t pt-3 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span>৳{subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Shipping</span><span>৳{shipping}</span></div>
-              {couponDiscount > 0 && (
-                <div className="flex justify-between text-green-600"><span>Coupon</span><span>-৳{couponDiscount.toLocaleString()}</span></div>
-              )}
-              <div className="flex justify-between font-bold text-base pt-2 border-t">
-                <span>Total</span>
-                <span className="text-orange-600">৳{total.toLocaleString()}</span>
               </div>
-            </div>
+            ) : null}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-6 w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition"
-            >
-              {loading ? 'Placing order…' : paymentMethod === 'cod' ? 'Place Order (COD)' : 'Proceed to Payment'}
-            </button>
-          </div>
-        </form>
+            {step === 2 ? (
+              <div className="surface-card p-5">
+                <h2 className="text-xl font-bold text-text-primary">Delivery Method</h2>
+                <div className="mt-4 space-y-3">
+                  {DELIVERY_METHODS.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setDeliveryMethod(method.id)}
+                      className={`w-full rounded-xl border p-4 text-left transition ${deliveryMethod === method.id ? 'border-primary bg-blue-50' : 'border-border'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-text-primary">{method.name}</p>
+                        <p className="text-sm font-semibold text-primary">৳{method.fee}</p>
+                      </div>
+                      <p className="mt-1 text-sm text-text-secondary">Estimated arrival: {method.eta}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {step === 3 ? (
+              <div className="surface-card p-5">
+                <h2 className="text-xl font-bold text-text-primary">Payment Method</h2>
+                <div className="mt-4 space-y-3">
+                  {PAYMENT_METHODS.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setPaymentMethod(method.id)}
+                      className={`w-full rounded-xl border p-4 text-left transition ${paymentMethod === method.id ? 'border-primary bg-blue-50' : 'border-border'}`}
+                    >
+                      <p className="font-semibold text-text-primary">{method.title}</p>
+                      <p className="mt-1 text-sm text-text-secondary">{method.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {step === 4 ? (
+              <div className="surface-card p-5">
+                <h2 className="text-xl font-bold text-text-primary">Review Order</h2>
+                <div className="mt-4 space-y-3">
+                  {items.map((item) => (
+                    <div key={`${item.productId}-${item.variantId}`} className="flex items-center justify-between text-sm">
+                      <span className="max-w-[70%] truncate text-text-secondary">{item.title} x {item.quantity}</span>
+                      <span className="font-semibold text-text-primary">৳{(item.price * item.quantity).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 rounded-xl border border-border bg-slate-50 p-4 text-sm text-text-secondary">
+                  <p className="font-semibold text-text-primary">Deliver to:</p>
+                  <p>{shippingAddress.fullName}, {shippingAddress.phone}</p>
+                  <p>{shippingAddress.address}, {shippingAddress.city}, {shippingAddress.district}</p>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setStep((s) => Math.max(1, s - 1))}
+                disabled={step === 1}
+                className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary disabled:opacity-50"
+              >
+                Back
+              </button>
+              {step < 4 ? (
+                <button
+                  onClick={() => setStep((s) => Math.min(4, s + 1))}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  onClick={placeOrder}
+                  disabled={placing}
+                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
+                >
+                  {placing ? 'Placing order...' : paymentMethod === 'cod' ? 'Place COD Order' : 'Proceed to Payment'}
+                </button>
+              )}
+            </div>
+          </section>
+
+          <aside className="surface-card h-fit p-5">
+            <h3 className="text-lg font-bold text-text-primary">Summary</h3>
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-text-secondary">Subtotal</span><span>৳{subtotal.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-text-secondary">Delivery</span><span>৳{shippingCost.toLocaleString()}</span></div>
+              {couponDiscount > 0 ? <div className="flex justify-between text-success"><span>Coupon</span><span>-৳{couponDiscount.toLocaleString()}</span></div> : null}
+              <div className="flex justify-between border-t border-border pt-2 text-base font-bold"><span>Total</span><span className="text-primary">৳{total.toLocaleString()}</span></div>
+            </div>
+          </aside>
+        </div>
       </main>
       <Footer />
     </>

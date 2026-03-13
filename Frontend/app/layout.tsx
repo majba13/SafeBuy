@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
+const poppins = Poppins({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-heading" });
 
 export const metadata: Metadata = {
-  title: "SafeBuy – Bangladesh's Trusted Multi-Vendor Marketplace",
+  title: "SafeBuy | Smart Multi-Vendor Marketplace",
   description:
-    "Shop millions of products from verified sellers across Bangladesh. Fast delivery, secure payments, buyer protection.",
+    "Discover top sellers, flash deals, and secure checkout on SafeBuy. A modern multi-vendor shopping experience.",
   keywords: "ecommerce, bangladesh, online shopping, marketplace, safebuy",
   openGraph: {
     title: "SafeBuy",
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased bg-gray-50`}>
+      <body className={`${inter.variable} ${poppins.variable} antialiased bg-background text-text-primary font-body`}>
         <Providers>{children}</Providers>
       </body>
     </html>

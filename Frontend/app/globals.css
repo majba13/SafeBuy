@@ -1,26 +1,118 @@
 @import "tailwindcss";
+@import "../styles/marketplace.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --card: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --primary: #2563eb;
+  --accent: #f97316;
+  --border: #e5e7eb;
+  --success: #10b981;
+  --error: #ef4444;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-card: var(--card);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --font-body: var(--font-body);
+  --font-heading: var(--font-heading);
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-body), sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), sans-serif;
+}
+
+h1 {
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+h3 {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+p,
+li,
+label,
+input,
+textarea,
+select,
+button {
+  font-size: 16px;
+}
+
+small {
+  font-size: 14px;
+}
+
+* {
+  border-color: var(--border);
+}
+
+.market-container {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+.surface-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.text-muted {
+  color: var(--text-secondary);
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe 45%, #fff7ed 90%);
+}
+
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stagger-enter {
+  animation: stagger-fade 420ms ease forwards;
+  opacity: 0;
+}
+
+@keyframes stagger-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

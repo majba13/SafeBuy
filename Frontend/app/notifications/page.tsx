@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAppSelector } from '@/store/hooks';
@@ -24,6 +25,7 @@ const ICON_MAP = {
 };
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const { accessToken } = useAppSelector((s) => s.auth);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,10 @@ export default function NotificationsPage() {
               return (
                 <div
                   key={n._id}
-                  onClick={() => { if (!n.isRead) markRead(n._id); if (n.link) window.location.href = n.link; }}
+                  onClick={() => {
+                    if (!n.isRead) markRead(n._id);
+                    if (n.link) router.push(n.link);
+                  }}
                   className={`flex gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${n.isRead ? 'bg-white border-gray-100' : 'bg-orange-50 border-orange-200'}`}
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${n.isRead ? 'bg-gray-100 text-gray-500' : 'bg-orange-500 text-white'}`}>

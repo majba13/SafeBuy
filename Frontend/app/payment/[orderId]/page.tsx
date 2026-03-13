@@ -1,4 +1,5 @@
 'use client';
+
 import { Suspense, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
@@ -13,12 +14,10 @@ const PAYMENT_INFO: Record<string, { name: string; number: string; icon: string;
     number: '01752962104',
     icon: '📱',
     instructions: [
-      'Open your bKash app',
-      'Tap "Send Money"',
-      'Enter number: 01752962104',
-      'Enter the exact amount',
-      'Add your Order ID in Reference',
-      'Complete with your bKash PIN',
+      'Open bKash app and tap Send Money',
+      'Send exact amount to 01752962104',
+      'Use your Order ID as reference',
+      'Submit transaction ID below',
     ],
   },
   nagad: {
@@ -26,39 +25,32 @@ const PAYMENT_INFO: Record<string, { name: string; number: string; icon: string;
     number: '01752962104',
     icon: '💳',
     instructions: [
-      'Open your Nagad app',
-      'Tap "Send Money"',
-      'Enter number: 01752962104',
-      'Enter the exact amount',
-      'Add your Order ID in Reference',
-      'Confirm payment',
+      'Open Nagad app and choose Send Money',
+      'Send exact amount to 01752962104',
+      'Add Order ID in remarks',
+      'Submit transaction ID below',
     ],
   },
   rocket: {
     name: 'Rocket',
-    number: '01752962104',
+    number: '017529621040',
     icon: '🚀',
     instructions: [
-      'Dial *322# or use Rocket app',
-      'Choose "Send Money"',
-      'Enter number: 017529621040 (add 0 at end)',
-      'Enter the exact amount',
-      'Add reference note',
-      'Enter your Rocket PIN',
+      'Open Rocket or dial *322#',
+      'Send exact amount to 017529621040',
+      'Keep payment confirmation message',
+      'Submit transaction ID below',
     ],
   },
   bank_transfer: {
-    name: 'Islami Bank Transfer',
+    name: 'Bank Transfer',
     number: '20501306700352701',
     icon: '🏦',
     instructions: [
-      'Log into your internet/mobile banking',
-      'Go to Fund Transfer → Other Bank',
+      'Transfer amount to account 20501306700352701',
       'Bank: Islami Bank Bangladesh Ltd',
-      'Account: 20501306700352701',
-      'Routing: 125264097',
-      'Add Order ID in remarks',
-      'Transfer the exact amount',
+      'Use Order ID in remarks',
+      'Submit transaction reference below',
     ],
   },
 };
@@ -68,6 +60,7 @@ function PaymentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { accessToken } = useAppSelector((s) => s.auth);
+
   const orderId = params.orderId as string;
   const method = searchParams.get('method') || 'bkash';
   const amount = Number(searchParams.get('amount') || 0);
@@ -80,49 +73,74 @@ function PaymentPageContent() {
   const info = PAYMENT_INFO[method];
 
   const submitPayment = async () => {
-    if (!txId.trim()) { toast.error('Transaction ID is required'); return; }
-    if (!senderNumber.trim() && method !== 'bank_transfer') { toast.error('Sender number is required'); return; }
-    if (!accessToken) { router.push('/auth/login'); return; }
+    if (!txId.trim()) {
+      toast.error('Transaction ID is required');
+      return;
+    }
+
+    if (method !== 'bank_transfer' && !senderNumber.trim()) {
+      toast.error('Sender number is required');
+      return;
+    }
+
+    if (!accessToken) {
+      router.push('/auth/login');
+      return;
+    }
 
     setLoading(true);
     try {
-      await apiFetch(`/payments/submit`, {
+      await apiFetch('/payments/submit', {
         method: 'POST',
-        body: JSON.stringify({ orderId, transactionId: txId, senderNumber, method, amount }),
         token: accessToken,
+        body: {
+          orderId,
+          transactionId: txId,
+          senderNumber,
+          method,
+          amount,
+        },
       });
+
       setSubmitted(true);
-      toast.success('Payment submitted! We will verify and confirm within a few minutes.');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit payment');
+      toast.success('Payment submitted. Verification in progress.');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to submit payment');
     } finally {
       setLoading(false);
     }
   };
 
   if (!info) {
-    return <div className="text-center py-20 text-red-500">Invalid payment method</div>;
+    return (
+      <>
+        <Header />
+        <main className="market-container py-20 text-center">
+          <p className="text-error">Invalid payment method.</p>
+        </main>
+        <Footer />
+      </>
+    );
   }
 
   if (submitted) {
     return (
       <>
         <Header />
-        <main className="max-w-md mx-auto px-4 py-16 text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Payment Submitted!</h2>
-          <p className="text-gray-600 mb-6">
-            Your payment details have been received. We will verify and confirm your order within a few minutes.
-          </p>
-          <p className="text-sm text-gray-500 mb-8 bg-orange-50 border border-orange-200 rounded-lg p-3">
-            📋 Order ID: <strong>{orderId}</strong>
-          </p>
-          <button
-            onClick={() => router.push(`/orders/${orderId}`)}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-xl transition"
-          >
-            Track My Order
-          </button>
+        <main className="market-container py-16">
+          <div className="mx-auto max-w-lg rounded-3xl border border-success/30 bg-emerald-50 p-8 text-center">
+            <div className="text-5xl">✅</div>
+            <h1 className="mt-4 text-3xl font-bold text-text-primary">Payment Submitted</h1>
+            <p className="mt-2 text-sm text-text-secondary">
+              Your payment details are received for order <strong>#{orderId}</strong>. We will verify and confirm shortly.
+            </p>
+            <button
+              onClick={() => router.push(`/orders/${orderId}`)}
+              className="mt-6 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white"
+            >
+              Track my order
+            </button>
+          </div>
         </main>
         <Footer />
       </>
@@ -132,75 +150,76 @@ function PaymentPageContent() {
   return (
     <>
       <Header />
-      <main className="max-w-lg mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Complete Your Payment</h1>
-        <p className="text-gray-500 text-sm mb-6">Order #{orderId}</p>
+      <main className="market-container py-8">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="text-3xl font-bold text-text-primary">Complete Payment</h1>
+          <p className="mt-1 text-sm text-text-secondary">Order #{orderId}</p>
 
-        {/* Amount box */}
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 text-center">
-          <p className="text-sm text-gray-600 mb-1">Amount to Pay</p>
-          <p className="text-3xl font-extrabold text-orange-600">৳{amount.toLocaleString()}</p>
-        </div>
-
-        {/* Payment instructions */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">{info.icon}</span>
-            <h2 className="font-bold text-gray-900">Pay via {info.name}</h2>
+          <div className="mt-5 rounded-2xl border border-accent/30 bg-orange-50 p-5 text-center">
+            <p className="text-sm text-text-secondary">Amount to pay</p>
+            <p className="mt-1 text-4xl font-bold text-accent">৳{amount.toLocaleString()}</p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <p className="text-sm text-gray-600">
-              {method === 'bank_transfer' ? 'Account Number' : `${info.name} Number`}
-            </p>
-            <p className="text-xl font-bold text-gray-900 tracking-widest">{info.number}</p>
-          </div>
-
-          <ol className="space-y-2">
-            {info.instructions.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm">
-                <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">
-                  {i + 1}
-                </span>
-                <span className="text-gray-700">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        {/* Submit form */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h3 className="font-bold text-gray-900 mb-4">I have completed the payment</h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-600 block mb-1">Transaction ID *</label>
-              <input
-                value={txId}
-                onChange={(e) => setTxId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400"
-                placeholder="e.g. BX73829104"
-              />
-            </div>
-            {method !== 'bank_transfer' && (
-              <div>
-                <label className="text-sm text-gray-600 block mb-1">Your {info.name} Number *</label>
-                <input
-                  value={senderNumber}
-                  onChange={(e) => setSenderNumber(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400"
-                  placeholder="01XXXXXXXXX"
-                />
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <section className="surface-card p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-2xl">{info.icon}</span>
+                <h2 className="text-xl font-bold text-text-primary">{info.name} Instructions</h2>
               </div>
-            )}
 
-            <button
-              onClick={submitPayment}
-              disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition"
-            >
-              {loading ? 'Submitting…' : 'Submit Payment Details'}
-            </button>
+              <div className="rounded-xl border border-border bg-slate-50 p-3">
+                <p className="text-xs uppercase tracking-wide text-text-secondary">{method === 'bank_transfer' ? 'Account Number' : 'Payment Number'}</p>
+                <p className="mt-1 text-xl font-bold text-text-primary">{info.number}</p>
+              </div>
+
+              <ol className="mt-4 space-y-2">
+                {info.instructions.map((step, index) => (
+                  <li key={step} className="flex gap-2 text-sm text-text-secondary">
+                    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-primary">
+                      {index + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="surface-card p-5">
+              <h2 className="text-xl font-bold text-text-primary">Submit Transaction</h2>
+              <p className="mt-1 text-sm text-text-secondary">After payment, share your transaction details.</p>
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-text-primary">Transaction ID</label>
+                  <input
+                    value={txId}
+                    onChange={(e) => setTxId(e.target.value)}
+                    placeholder="e.g. BX73829104"
+                    className="h-11 w-full rounded-xl border border-border px-3 text-sm"
+                  />
+                </div>
+
+                {method !== 'bank_transfer' ? (
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-text-primary">Sender Number</label>
+                    <input
+                      value={senderNumber}
+                      onChange={(e) => setSenderNumber(e.target.value)}
+                      placeholder="01XXXXXXXXX"
+                      className="h-11 w-full rounded-xl border border-border px-3 text-sm"
+                    />
+                  </div>
+                ) : null}
+
+                <button
+                  onClick={submitPayment}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
+                >
+                  {loading ? 'Submitting...' : 'Submit Payment Details'}
+                </button>
+              </div>
+            </section>
           </div>
         </div>
       </main>
@@ -211,7 +230,7 @@ function PaymentPageContent() {
 
 export default function PaymentPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen grid place-items-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
       <PaymentPageContent />
     </Suspense>
   );
