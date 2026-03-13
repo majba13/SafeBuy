@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
@@ -29,6 +30,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { AiModule } from './modules/ai/ai.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
+import { User, UserSchema } from './modules/users/schemas/user.schema';
 
 @Module({
   imports: [
@@ -52,6 +54,15 @@ import { CouponsModule } from './modules/coupons/coupons.module';
           });
           return connection;
         },
+      }),
+    }),
+
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        secret: config.get<string>('JWT_ACCESS_SECRET') as string,
       }),
     }),
 

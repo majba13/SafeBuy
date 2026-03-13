@@ -5,14 +5,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
-    private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
     private readonly config: ConfigService,
   ) {}
@@ -30,9 +29,10 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) throw new UnauthorizedException('No token provided');
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.config.get<string>('JWT_ACCESS_SECRET'),
-      });
+      const secret = this.config.get<string>('JWT_ACCESS_SECRET');
+      if (!secret) throw new UnauthorizedException('JWT secret is not configured');
+
+      const payload = jwt.verify(token, secret);
       request['user'] = payload;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
