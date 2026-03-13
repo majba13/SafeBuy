@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL
+  || (typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:3001/api/v1');
 
 type JsonBody = Record<string, unknown> | unknown[];
 
@@ -27,13 +28,27 @@ export async function apiFetch<T = any>(
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const resolvedBody = isJsonBody(body) ? JSON.stringify(body) : body;
-  const res = await fetch(`${API_BASE}${endpoint}`, { ...fetchOptions, headers, body: resolvedBody });
-  const json = await res.json();
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, { ...fetchOptions, headers, body: resolvedBody });
+  } catch (error: any) {
+    throw new Error(
+      `Network error: cannot reach API at ${API_BASE}. Check backend status, CORS, and NEXT_PUBLIC_API_URL.`,
+    );
+  }
+
+  const raw = await res.text();
+  let json: any = null;
+  try {
+    json = raw ? JSON.parse(raw) : null;
+  } catch {
+    json = null;
+  }
 
   if (!res.ok) {
-    throw new Error(json.message || 'Request failed');
+    throw new Error(json?.message || `Request failed (${res.status})`);
   }
-  return json.data ?? json;
+  return (json?.data ?? json ?? {}) as T;
 }
 
 export function apiUrl(path: string) {
