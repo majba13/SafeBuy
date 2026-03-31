@@ -1,0 +1,13 @@
+{
+  "name": "safebuy-backend",
+  "version": "1.0.0",
+  "description": "SafeBuy Backend API (NestJS)",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "build": "nest build"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

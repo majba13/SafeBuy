@@ -1,0 +1,24 @@
+# Node
+node_modules/
+.env
+.DS_Store
+.next/
+dist/
+build/
+coverage/
+.expo/
+.expo-shared/
+.idea/
+.vscode/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Others
+*.local
+*.cache

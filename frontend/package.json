@@ -1,0 +1,12 @@
+{
+  "name": "safebuy-frontend",
+  "version": "1.0.0",
+  "description": "SafeBuy Frontend Web (Next.js)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
