@@ -8,6 +8,7 @@
     "start:dev": "nest start --watch",
     "build": "nest build"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@vercel/node": "^5.6.22"
+  }
 }
