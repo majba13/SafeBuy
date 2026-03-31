@@ -1,0 +1,24 @@
+{
+  "projects": {
+    "frontend": {
+      "rootDirectory": "frontend",
+      "framework": "nextjs"
+    },
+    "backend": {
+      "rootDirectory": "backend",
+      "framework": null,
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist",
+      "installCommand": "npm install",
+      "ignoreCommand": "echo 'Use Vercel serverless API for backend'"
+    }
+  },
+  "builds": [
+    { "src": "frontend/package.json", "use": "@vercel/next" },
+    { "src": "backend/src/api/**/*.ts", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "backend/src/api/$1.ts" },
+    { "src": "/(.*)", "dest": "frontend/$1" }
+  ]
+}
